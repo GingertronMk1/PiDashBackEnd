@@ -2,19 +2,18 @@ import psutil
 import json
 import requests
 import re
+import os
+from dotenv import load_dotenv
 # Importing flask module in the project is mandatory
 # An object of Flask class is our WSGI application.
-from flask import Flask, render_template
+from flask import Flask, jsonify
   
 # Flask constructor takes the name of 
 # current module (__name__) as argument.
 app = Flask(__name__)
   
 
-def objToJson(obj):
-  objDir = dir(obj)
-  objDict = dict((name, getattr(obj, name)) for name in objDir if not name.startswith('__') and not callable(getattr(obj, name)))
-  return json.dumps(objDict)
+load_dotenv()
 
 # The route() function of the Flask class is a decorator, 
 # which tells the application which URL should call 
@@ -28,12 +27,12 @@ def getCpu():
 def getMemory():
 # Calculate memory information
   memory = psutil.virtual_memory()
-  return objToJson(memory)
+  return jsonify(memory)
 
 @app.route('/disk')
 def getDisk():
   disk = psutil.disk_usage('/')
-  return objToJson(disk)
+  return jsonify(disk)
 
 @app.route('/temperatures')
 def getTemperatures():
@@ -41,8 +40,7 @@ def getTemperatures():
 
 @app.route('/transmission')
 def getTransmission():
-  secrets = json.load(open('./secrets.json'))
-  url = f"http://{secrets['rpc-username']}:{secrets['rpc-password']}@localhost:9091/transmission/rpc"
+  url = f"http://{os.getenv('RPC_USERNAME')}:{os.getenv('RPC_PASSWORD')}@localhost:9091/transmission/rpc"
   initReq = requests.get(url)
   pattern = re.compile("X-Transmission-Session-Id: (.*?)<\/")
   match = pattern.search(initReq.text)
@@ -80,4 +78,4 @@ if __name__ == '__main__':
   
     # run() method of Flask class runs the application 
     # on the local development server.
-    app.run(host="0.0.0.0")
+    app.run()
