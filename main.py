@@ -13,11 +13,6 @@ app = Flask(__name__)
 # The route() function of the Flask class is a decorator, 
 # which tells the application which URL should call 
 # the associated function.
-@app.route('/')
-# ‘/’ URL is bound with hello_world() function.
-def hello_world():
-    return render_template("app.html")
-
 @app.route('/cpu')
 def getCpu():
   cpuPercents = psutil.cpu_percent(percpu=True)
@@ -27,7 +22,18 @@ def getCpu():
 def getMemory():
 # Calculate memory information
   memory = psutil.virtual_memory()
-  return json.dumps(memory)
+  memdir = dir(memory)
+  memoryDict = dict((name, getattr(memory, name)) for name in memdir if not name.startswith('__') and not callable(getattr(memory, name)))
+  print(memoryDict)
+  jsond = json.dumps(memoryDict)
+  return jsond
+
+@app.route('/disk')
+def getDisk():
+  disk = psutil.disk_usage('/')
+  diskdir = dir(disk)
+  diskDict = dict((name, getattr(disk, name)) for name in diskdir if not name.startswith('__') and not callable(getattr(disk, name)))
+  return json.dumps(diskDict)
 
 @app.route('/transmission')
 def getTransmission():
@@ -56,6 +62,10 @@ def getTransmission():
   )
   return torrentsReq.text
 
+@app.after_request
+def set_headers(response):
+  response.headers.add("Access-Control-Allow-Origin", "*")
+  return response
 
 
 
