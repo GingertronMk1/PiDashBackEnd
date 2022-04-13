@@ -10,6 +10,12 @@ from flask import Flask, render_template
 # current module (__name__) as argument.
 app = Flask(__name__)
   
+
+def objToJson(obj):
+  objDir = dir(obj)
+  objDict = dict((name, getattr(obj, name)) for name in objDir if not name.startswith('__') and not callable(getattr(obj, name)))
+  return json.dumps(objDict)
+
 # The route() function of the Flask class is a decorator, 
 # which tells the application which URL should call 
 # the associated function.
@@ -22,18 +28,12 @@ def getCpu():
 def getMemory():
 # Calculate memory information
   memory = psutil.virtual_memory()
-  memdir = dir(memory)
-  memoryDict = dict((name, getattr(memory, name)) for name in memdir if not name.startswith('__') and not callable(getattr(memory, name)))
-  print(memoryDict)
-  jsond = json.dumps(memoryDict)
-  return jsond
+  return objToJson(memory)
 
 @app.route('/disk')
 def getDisk():
   disk = psutil.disk_usage('/')
-  diskdir = dir(disk)
-  diskDict = dict((name, getattr(disk, name)) for name in diskdir if not name.startswith('__') and not callable(getattr(disk, name)))
-  return json.dumps(diskDict)
+  return objToJson(disk)
 
 @app.route('/transmission')
 def getTransmission():
