@@ -35,6 +35,10 @@ def getDisk():
   disk = psutil.disk_usage('/')
   return objToJson(disk)
 
+@app.route('/temperatures')
+def getTemperatures():
+  return psutil.sensors_temperatures()
+
 @app.route('/transmission')
 def getTransmission():
   secrets = json.load(open('../secrets.json'))
@@ -54,7 +58,8 @@ def getTransmission():
             "name",
             "eta",
             "leftUntilDone",
-            "percentDone"
+            "percentDone",
+            "rateDownload"
           ]
         }
       },
