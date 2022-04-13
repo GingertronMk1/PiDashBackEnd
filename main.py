@@ -41,7 +41,7 @@ def getTemperatures():
 
 @app.route('/transmission')
 def getTransmission():
-  secrets = json.load(open('../secrets.json'))
+  secrets = json.load(open('./secrets.json'))
   url = f"http://{secrets['rpc-username']}:{secrets['rpc-password']}@localhost:9091/transmission/rpc"
   initReq = requests.get(url)
   pattern = re.compile("X-Transmission-Session-Id: (.*?)<\/")
