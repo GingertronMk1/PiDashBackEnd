@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "axios": "^0.26.1",
     "laravel-mix": "^6.0.43",
     "vue": "^3.2.32",
     "vue-loader": "^16.8.3"

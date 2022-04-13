@@ -1,3 +1,7 @@
+import psutil
+import json
+import requests
+import re
 # Importing flask module in the project is mandatory
 # An object of Flask class is our WSGI application.
 from flask import Flask, render_template
@@ -13,6 +17,48 @@ app = Flask(__name__)
 # ‘/’ URL is bound with hello_world() function.
 def hello_world():
     return render_template("app.html")
+
+@app.route('/cpu')
+def getCpu():
+  cpuPercents = psutil.cpu_percent(percpu=True)
+  return json.dumps(cpuPercents)
+
+@app.route('/memory')
+def getMemory():
+# Calculate memory information
+  memory = psutil.virtual_memory()
+  return json.dumps(memory)
+
+@app.route('/transmission')
+def getTransmission():
+  secrets = json.load(open('../secrets.json'))
+  url = f"http://{secrets['rpc-username']}:{secrets['rpc-password']}@localhost:9091/transmission/rpc"
+  initReq = requests.get(url)
+  pattern = re.compile("X-Transmission-Session-Id: (.*?)<\/")
+  match = pattern.search(initReq.text)
+  headers = { "X-Transmission-Session-Id": match.group(1) }
+  torrentsReq = requests.post(
+      url,
+      json = {
+        "method": "torrent-get",
+        "arguments": {
+          "fields": [
+            "addedDate",
+            "id",
+            "name",
+            "eta",
+            "leftUntilDone",
+            "percentDone"
+          ]
+        }
+      },
+      headers=headers
+  )
+  return torrentsReq.text
+
+
+
+
   
 # main driver function
 if __name__ == '__main__':
