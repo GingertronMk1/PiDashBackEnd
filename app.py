@@ -31,8 +31,8 @@ def getMemory():
 
 @app.route('/disk')
 def getDisk():
-  disk = psutil.disk_usage('/')
-  return jsonify(disk)
+  disks = {path.mountpoint:psutil.disk_usage(path.mountpoint) for path in psutil.disk_partitions()}
+  return jsonify(disks)
 
 @app.route('/temperatures')
 def getTemperatures():
