@@ -13,3 +13,30 @@ It packages all that up into a lovely little set of endpoints to which the afore
 - `/disk`
 - `/temperatures`
 - `/transmission`
+
+### To use this with the above linked front end
+
+Set up your nginx file as follows:
+
+```
+server {
+	listen 80 default_server;
+	listen [::]:80 default_server;
+
+	root /var/www/html;
+
+	index index.html index.htm index.nginx-debian.html;
+
+	server_name _;
+
+	location / {
+		try_files $uri $uri/ =404;
+	}
+
+  location /dash-api {
+    proxy_pass <BACKEND_URL>;
+  }
+
+}
+```
+Where `<BACKEND_URL>` is the url of this application, normally with flask `http://localhost:5000/`
