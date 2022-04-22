@@ -24,6 +24,8 @@ app = Flask(__name__)
 
 load_dotenv()
 
+argument_param = 'arguments'
+
 
 @app.route('/cpu')
 def get_cpu():
@@ -35,6 +37,14 @@ def get_cpu():
     """
     cpu_percents = psutil.cpu_percent(percpu=True)
     return jsonify(cpu_percents)
+
+@app.route('/processes')
+def get_processes():
+    request_args = request.args.getlist('arguments[]')
+    args = request_args or ['pid', 'name', 'username']
+    processes = psutil.process_iter(args)
+    process_dict = [p.info for p in processes];
+    return jsonify(process_dict)
 
 
 @app.route('/memory')
@@ -100,7 +110,7 @@ def get_transmission():
     match = pattern.search(init_req.text)
 
     headers = {"X-Transmission-Session-Id": match.group(1)}
-    arguments = json.loads(request.args.get("arguments"))
+    arguments = json.loads(request.args.get(argument_param))
     torrents_req = requests.post(
         url,
         json={
