@@ -7,27 +7,41 @@ import json
 import re
 import os
 
-from flask import Flask, jsonify, request
+import uvicorn
+from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
 import psutil
 import requests
 # install python-dotenv
 from dotenv import load_dotenv
+from typing import List
 
-# Importing flask module in the project is mandatory
-# An object of Flask class is our WSGI application.
+from fastapi.middleware.cors import CORSMiddleware
 
-# Construct a new Flask object.
-# Flask constructor takes the name of
-# current module (__name__) as argument.
-app = Flask(__name__)
+app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins="*",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 load_dotenv()
 
 argument_param = 'arguments'
 
 
-@app.route('/cpu')
+def obj_to_dict(obj):
+  return {
+          item: str(getattr(obj, item))
+                for item
+                in dir(obj)
+                if not item.startswith('__')
+        }
+
+@app.get('/cpu')
 def get_cpu():
     """
     get_cpu is called when the user sends a GET request to the /cpu endpoint.
@@ -36,18 +50,17 @@ def get_cpu():
     string:the cpu percentages
     """
     cpu_percents = psutil.cpu_percent(percpu=True)
-    return jsonify(cpu_percents)
+    return cpu_percents
 
-@app.route('/processes')
-def get_processes():
-    request_args = request.args.getlist('arguments[]')
-    args = request_args or ['pid', 'name', 'username']
-    processes = psutil.process_iter(args)
+@app.get('/processes')
+def get_processes(arguments):
+    args_decoded = json.loads(arguments)
+    processes = psutil.process_iter(args_decoded)
     process_dict = [p.info for p in processes];
-    return jsonify(process_dict)
+    return process_dict
 
 
-@app.route('/memory')
+@app.get('/memory')
 def get_memory():
     """
     get_memory is called when the user sends a GET request to the /memory endpoint.
@@ -55,10 +68,10 @@ def get_memory():
     Returns:
     string:the various memory statistics as recorded by psutil
     """
-    return jsonify(psutil.virtual_memory())
+    return obj_to_dict(psutil.virtual_memory())
 
 
-@app.route('/disk')
+@app.get('/disk')
 def get_disk():
     """
     Called when the user GETs /disk
@@ -67,14 +80,13 @@ def get_disk():
     """
     partitions = psutil.disk_partitions()
     disks = {
-        path.mountpoint: psutil.disk_usage(path.mountpoint)
+        path.mountpoint: obj_to_dict(psutil.disk_usage(path.mountpoint))
         for path
         in partitions
     }
-    return jsonify(disks)
+    return disks
 
-
-@app.route('/temperatures')
+@app.get('/temperatures')
 def get_temperatures():
     """
     Called when the user GETs /temperatures
@@ -82,11 +94,13 @@ def get_temperatures():
     Returns:
     string:the various temperature statistics as recorded by psutil
     """
-    return jsonify(psutil.sensors_temperatures())
+    # {'cpu_thermal': [shwtemp(label='', current=83.82, high=None, critical=None)]}
+
+    return { k: obj_to_dict(v[0]) for (k, v) in psutil.sensors_temperatures().items() }
 
 
-@app.route('/transmission')
-def get_transmission():
+@app.get('/transmission')
+def get_transmission(fields):
     """
     Returns a list of torrents being handled by transmission.
     This is called when the user GETs /transmission
@@ -99,6 +113,7 @@ def get_transmission():
     Returns:
     string:a JSON-encoded array of torrent details
     """
+    fields_decoded = json.loads(fields)
     url = "http://"
     url += os.getenv("RPC_USERNAME")
     url += ":"
@@ -110,31 +125,18 @@ def get_transmission():
     match = pattern.search(init_req.text)
 
     headers = {"X-Transmission-Session-Id": match.group(1)}
-    arguments = json.loads(request.args.get(argument_param))
     torrents_req = requests.post(
         url,
         json={
             "method": "torrent-get",
-            "arguments": arguments
+            "arguments": {
+              "fields": fields_decoded
+            }
         },
         headers=headers
     )
-    return torrents_req.text
-
-
-@app.after_request
-def set_headers(response):
-    """
-    This is maybe not the nicest way to do this, but it works.
-    Set the access-control header to allow cross-origin requests.
-    """
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    return response
-
+    return json.loads(torrents_req.text)
 
 # main driver function
 if __name__ == '__main__':
-
-    # run() method of Flask class runs the application
-    # on the local development server.
-    app.run()
+    uvicorn.run("main:app")
