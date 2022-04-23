@@ -33,10 +33,11 @@ server {
 		try_files $uri $uri/ =404;
 	}
 
-  location /dash-api {
-    proxy_pass <BACKEND_URL>;
+  location /dash-api/ {
+    proxy_pass <BACKEND_URL>/;
   }
 
 }
 ```
-Where `<BACKEND_URL>` is the url of this application, normally with flask `http://localhost:5000/`
+Where `<BACKEND_URL>` is the url of this application, normally with FastAPI `http://localhost:8000/`.
+This file on a Raspberry Pi is located at `/etc/nginx/sites-available/default`.
