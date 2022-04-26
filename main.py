@@ -8,7 +8,7 @@ import re
 import os
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.encoders import jsonable_encoder
 import psutil
 import requests
@@ -54,7 +54,12 @@ def get_cpu():
     return cpu_percents
 
 @app.get('/processes')
-def get_processes(arguments: List[str] = ['pid', 'name', 'username', 'cpu_percent']):
+def get_processes(
+    arguments: List[str] = Query(
+      ['pid', 'name', 'username', 'cpu_percent'],
+      description='The list of arguments to pass through to `psutil.process_iter`'
+    )
+):
     processes = psutil.process_iter(arguments)
     process_dict = [p.info for p in processes];
     return process_dict
@@ -100,7 +105,12 @@ def get_temperatures():
 
 
 @app.get('/transmission')
-def get_transmission(fields: List[str] = ['id','name','percentDone']):
+def get_transmission(
+    fields: List[str] = Query(
+      ['id','name','percentDone'],
+      description='The list of fields to pass through to Transmission\'s RPC'
+    )
+):
     """
     Returns a list of torrents being handled by transmission.
     This is called when the user GETs /transmission
