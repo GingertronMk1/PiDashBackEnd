@@ -16,22 +16,23 @@ import requests
 from dotenv import load_dotenv
 from typing import List
 
+from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+middleware = [
+    Middleware(
+      CORSMiddleware,
+      allow_origins=["*"],
+      allow_headers=["*"],
+      allow_credentials=True
+    )
+]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins="*",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app = FastAPI(middleware=middleware)
 
 load_dotenv()
 
 argument_param = 'arguments'
-
 
 def obj_to_dict(obj):
   return {
@@ -53,9 +54,8 @@ def get_cpu():
     return cpu_percents
 
 @app.get('/processes')
-def get_processes(arguments):
-    args_decoded = json.loads(arguments)
-    processes = psutil.process_iter(args_decoded)
+def get_processes(arguments: List[str] = ['pid', 'name', 'username', 'cpu_percent']):
+    processes = psutil.process_iter(arguments)
     process_dict = [p.info for p in processes];
     return process_dict
 
@@ -100,7 +100,7 @@ def get_temperatures():
 
 
 @app.get('/transmission')
-def get_transmission(fields):
+def get_transmission(fields: List[str] = ['id','name','percentDone']):
     """
     Returns a list of torrents being handled by transmission.
     This is called when the user GETs /transmission
@@ -113,7 +113,6 @@ def get_transmission(fields):
     Returns:
     string:a JSON-encoded array of torrent details
     """
-    fields_decoded = json.loads(fields)
     url = "http://"
     url += os.getenv("RPC_USERNAME")
     url += ":"
@@ -130,7 +129,7 @@ def get_transmission(fields):
         json={
             "method": "torrent-get",
             "arguments": {
-              "fields": fields_decoded
+              "fields": fields
             }
         },
         headers=headers

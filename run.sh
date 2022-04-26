@@ -1,3 +1,3 @@
 #!/bin/sh
 
-uvicorn main:app --reload
+python -m uvicorn main:app --reload --root-path /dash-api --host 0.0.0.0
